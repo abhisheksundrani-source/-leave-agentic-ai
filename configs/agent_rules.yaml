@@ -1,0 +1,61 @@
+# configs/agent_rules.yaml
+version: 1.0
+defaults:
+  timezone: "UTC"
+  auto_grant_confidence: 0.95
+  auto_submit_confidence: 0.80
+  manager_review_confidence: 0.80
+  one_day_threshold_days: 1
+weights:
+  balance_score: 0.35
+  doc_score: 0.25
+  calendar_penalty: 0.20
+  history_score: 0.15
+  policy_penalty: 0.05
+conflict_thresholds:
+  low: 0.2
+  medium: 0.5
+  high: 0.8
+policy_rules:
+  casual:
+    max_days_auto_grant: 1
+    requires_notice_days: 0
+    blackout_override_allowed: true
+  sick:
+    max_days_auto_grant: 1
+    requires_medical_doc_after_days: 2
+    doc_validation_required_after_days: 3
+  planned:
+    requires_notice_days: 7
+    max_auto_submit_days: 5
+document_verifier:
+  ocr:
+    provider: "azure_form_recognizer"
+    min_confidence: 0.85
+  classifier:
+    model: "doc-verify-v1"
+    min_confidence: 0.80
+examples:
+  - name: "one_day_casual_no_conflict"
+    input:
+      leave_type: casual
+      start_date: "2026-11-12"
+      end_date: "2026-11-12"
+      attachments: []
+    expected:
+      action: auto_grant
+      confidence: 0.98
+  - name: "three_day_planned_with_doc"
+    input:
+      leave_type: planned
+      start_date: "2026-12-20"
+      end_date: "2026-12-22"
+      attachments:
+        - filename: "medical.pdf"
+    expected:
+      action: submit_for_approval
+      confidence: 0.85
+audit:
+  enable_provenance: true
+  store_rag_snippets: true
+  redact_pii_in_logs: true
