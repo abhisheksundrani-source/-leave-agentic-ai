@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: Leave Agentic AI - MCP API
+  version: "0.1.0"
+servers:
+  - url: https://mcp.example.com/api
+paths:
+  /leave/request:
+    post:
+      summary: Create a leave request (intake)
+      operationId: createLeaveRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveRequest'
+      responses:
+        '201':
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveResponse'
+  /leave/{requestId}/decision:
+    get:
+      summary: Get aggregated decision and confidence
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Aggregated decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionResponse'
+  /leave/{requestId}/submit:
+    post:
+      summary: Submit final application to HRIS
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRequest'
+      responses:
+        '200':
+          description: Submission result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+components:
+  schemas:
+    LeaveRequest:
+      type: object
+      required:
+        - employee_id
+        - leave_type
+        - start_date
+        - end_date
+      properties:
+        request_id:
+          type: string
+          description: Optional client-supplied id
+        employee_id:
+          type: string
+        leave_type:
+          type: string
+          enum: [casual, sick, planned, emergency]
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        partial_days:
+          type: array
+          items:
+            type: string
+            description: ISO date for partial day
+        reason:
+          type: string
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              filename:
+                type: string
+              content_hash:
+                type: string
+        calendar_consent:
+          type: boolean
+    LeaveResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+        status:
+          type: string
+          enum: [accepted, pending, rejected]
+        intake_timestamp:
+          type: string
+          format: date-time
+    DecisionResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+        allowed:
+          type: boolean
+        confidence:
+          type: number
+          format: float
+        reasons:
+          type: array
+          items:
+            type: string
+        recommended_windows:
+          type: array
+          items:
+            type: object
+            properties:
+              start_date:
+                type: string
+                format: date
+              end_date:
+                type: string
+                format: date
+              conflict_score:
+                type: number
+                format: float
+    SubmitRequest:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [submit, save_draft, cancel]
+        manager_override:
+          type: boolean
+        comments:
+          type: string
+    SubmitResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+        hr_request_id:
+          type: string
+        status:
+          type: string
+          enum: [submitted, draft_saved, failed]
+        message:
+          type: string
